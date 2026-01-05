@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\RekomendasiController;
 use App\Http\Controllers\AuthController; // <--- BARIS INI WAJIB ADA
+use App\Http\Controllers\MovieController;
+
 
 // 1. Halaman Utama
 // Saya tambahkan ->name('home') agar controller login bisa redirect ke sini dengan mudah
@@ -34,3 +36,19 @@ Route::get('/cek-debug', function () {
 
 // Route untuk menyimpan rating
 Route::post('/simpan-rating', [RekomendasiController::class, 'simpanRating'])->name('simpan.rating')->middleware('auth');
+// Route untuk sinkronisasi (bisa diakses siapa saja atau tambahkan middleware admin jika perlu)
+
+
+// ... route lainnya ...
+
+// ==========================================================
+// GROUP KHUSUS USER LOGIN (Middleware 'auth')
+// ==========================================================
+// Semua route di dalam kurung kurawal ini HANYA BISA diakses kalau user sudah login
+Route::middleware(['auth'])->group(function () {
+    // ... route dashboard dll ...
+
+    // TAMBAHKAN INI:
+    
+});
+Route::get('/sync-data', [MovieController::class, 'syncData'])->name('sync.data');

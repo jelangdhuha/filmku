@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
+
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
@@ -32,6 +33,12 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+    public function ratings()
+    {
+        // Parameter 2 ('user_id') adalah foreign key di tabel ratings
+        // Parameter 3 ('id') adalah primary key di tabel users
+        return $this->hasMany(Rating::class, 'user_id', 'id');
+    }
 
     /**
      * Get the attributes that should be cast.

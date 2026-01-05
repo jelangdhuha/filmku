@@ -1,72 +1,116 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Http\Controllers\MovieController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth; // Tambahkan ini untuk cek User Login
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http; 
 
 class RekomendasiController extends Controller
 {
-    // MENAMPILKAN HALAMAN UTAMA (Dengan Prioritas Rating User)
-   public function index()
+    public function index()
     {
         $userId = Auth::id();
-        
-        // --- BAGIAN A: FILM YANG SUDAH DIRATING (SCROLL SAMPING) ---
-        $ratedMoviesFormatted = collect([]); 
-        $ratedMovieIds = []; 
+        try {
+        // Kita buat instance MovieController dan panggil fungsinya
+        $movieController = new MovieController();
+        $movieController->syncData(); 
+    } catch (\Exception $e) {
+        // Jika gagal sync, abaikan saja agar halaman tetap tampil
+    }
+        // ==========================================================
+        // BAGIAN A: FILM YANG SUDAH DIRATING (HISTORY)
+        // ==========================================================
+        $ratedMoviesFormatted = collect([]);
+        $ratedMovieIds = [];
 
         if ($userId) {
-            $ratedRaw = DB::table('movies')
-                ->join('ratings', 'movies.id', '=', 'ratings.movie_id')
-                ->where('ratings.user_id', '=', $userId)
-                ->select('movies.*', 'ratings.rating as personal_rating')
-                ->orderBy('ratings.created_at', 'desc') // Urutkan: yang baru dirating muncul duluan
-                ->get();
+            // Kita gunakan try-catch agar kalau kolom created_at tidak ada, tidak error 500
+            try {
+                $query = DB::table('movies')
+                    ->join('ratings', 'movies.id', '=', 'ratings.movie_id')
+                    ->where('ratings.user_id', '=', $userId)
+                    ->select('movies.*', 'ratings.rating as personal_rating');
+                
+                // Cek apakah perlu sorting based on timestamp
+                // Jika tabel ratings tidak punya created_at, hapus baris orderBy ini
+                $query->orderBy('ratings.created_at', 'desc');
 
-            $ratedMovieIds = $ratedRaw->pluck('id')->toArray();
+                $ratedRaw = $query->get();
 
-            $ratedMoviesFormatted = $ratedRaw->map(function($film) {
-                return [
-                    'movie_id'    => $film->id,
-                    'judul'       => $film->title,
-                    'skor'        => (float) $film->personal_rating, 
-                    'poster'      => $film->poster_path,
-                    'is_personal' => true
-                ];
-            });
+                $ratedMovieIds = $ratedRaw->pluck('id')->toArray();
+
+                $ratedMoviesFormatted = $ratedRaw->map(function ($film) {
+                    return [
+                        'movie_id'    => $film->id,
+                        'judul'       => $film->title,
+                        'skor'        => (float) $film->personal_rating,
+                        'poster'      => $film->poster_path,
+                        'is_personal' => true
+                    ];
+                });
+            } catch (\Exception $e) {
+                // Fallback jika query gagal (misal kolom created_at tidak ada)
+                $ratedMoviesFormatted = collect([]);
+            }
         }
 
-        // --- BAGIAN B: KOLEKSI FILM (GRID KE BAWAH) ---
+        // ==========================================================
+        // BAGIAN B: REKOMENDASI AI (ANTI-CRASH FIXED)
+        // ==========================================================
+        $recommendations = [];
+
+        if ($userId) {
+            try {
+                // Timeout dipercepat jadi 2 detik agar user tidak menunggu lama jika Python mati
+                $response = Http::timeout(2)->get("http://127.0.0.1:8001/recommend/{$userId}");
+                
+                if ($response->successful()) {
+                    $apiData = $response->json(); 
+
+                    // [PENTING] Validasi Struktur Data
+                    // Pastikan data yang diterima adalah ARRAY OF OBJECTS (Daftar Film)
+                    // Bukan Array Asosiatif (Pesan Error seperti {"status": "error"})
+                    if (is_array($apiData) && !empty($apiData) && isset($apiData[0]) && is_array($apiData[0])) {
+                        
+                        $recommendations = collect($apiData)->map(function ($item) {
+                            // Validasi ekstra per item
+                            return [
+                                'movie_id' => $item['movie_id'] ?? 0,
+                                'title'    => $item['title'] ?? 'Unknown',    
+                                'poster'   => $item['poster'] ?? null,   
+                            ];
+                        });
+
+                    } else {
+                        // Jika Python merespon tapi bukan daftar film (misal pesan error), kosongkan saja.
+                        $recommendations = [];
+                    }
+                }
+            } catch (\Exception $e) {
+                // Jika Python mati/timeout, biarkan kosong (jangan error)
+                $recommendations = [];
+            }
+        }
+
+        // ==========================================================
+        // BAGIAN C: KOLEKSI FILM UMUM (NONTON LAINNYA)
+        // ==========================================================
         $query = DB::table('movies');
 
-        // 1. Jangan tampilkan lagi film yang sudah dirating di bagian bawah
+        // Jangan tampilkan film yang sudah ditonton
         if (!empty($ratedMovieIds)) {
             $query->whereNotIn('id', $ratedMovieIds);
         }
 
-        // 2. LOGIKA SORTING (UBAH DISINI)
-        // Sebelumnya: $query->inRandomOrder();
-        // Sekarang: Diurutkan dari rating tertinggi
-        
-        // Pastikan kolom 'rating' ada di tabel movies. 
-        // Jika nama kolomnya beda (misal: 'vote_average'), sesuaikan string 'rating' dibawah.
-        $query->orderBy('rating', 'desc'); 
-        
-        // Opsional: Jika rating sama, urutkan berdasarkan judul A-Z
         $query->orderBy('title', 'asc');
-
-        // 3. Ambil data (Pagination)
         $films = $query->paginate(18);
 
-        // 4. Format data
-        $unratedFormatted = collect($films->items())->map(function($film) {
+        $unratedFormatted = collect($films->items())->map(function ($film) {
             return [
                 'movie_id'    => $film->id,
                 'judul'       => $film->title,
-                // Gunakan rating global dari database, jika null anggap 0
                 'skor'        => (float) ($film->rating ?? 0), 
                 'poster'      => $film->poster_path,
                 'is_personal' => false
@@ -74,42 +118,34 @@ class RekomendasiController extends Controller
         });
 
         return view('rekomendasi', [
-            'ratedMovies' => $ratedMoviesFormatted,
-            'hasil'       => $unratedFormatted,
-            'films'       => $films
+            'ratedMovies'     => $ratedMoviesFormatted,
+            'recommendations' => $recommendations,
+            'hasil'           => $unratedFormatted,
+            'films'           => $films
         ]);
     }
-    // MENAMPILKAN HASIL PENCARIAN
+
     public function cariRekomendasi(Request $request)
     {
         $queryInput = $request->input('query');
         $userId = Auth::id();
-        
-        // Setup Query Dasar
+
         $dbQuery = DB::table('movies')
             ->where('title', 'LIKE', "%{$queryInput}%");
 
-        // --- LOGIKA TAMBAHAN: JOIN RATING USER ---
         if ($userId) {
-            $dbQuery->leftJoin('ratings', function($join) use ($userId) {
+            $dbQuery->leftJoin('ratings', function ($join) use ($userId) {
                 $join->on('movies.id', '=', 'ratings.movie_id')
-                     ->where('ratings.user_id', '=', $userId);
+                    ->where('ratings.user_id', '=', $userId);
             })
-            ->select(
-                'movies.*', 
-                'ratings.rating as personal_rating'
-            )
-            // Urutkan: Yang sudah dirating user naik ke atas
-            ->orderByRaw('CASE WHEN ratings.rating IS NOT NULL THEN 0 ELSE 1 END')
-            // Lalu urutkan rating user tertinggi
-            ->orderBy('ratings.rating', 'desc');
+            ->select('movies.*', 'ratings.rating as personal_rating')
+            ->orderByRaw('CASE WHEN ratings.rating IS NOT NULL THEN 1 ELSE 0 END') 
+            ->orderBy('title', 'asc');
         }
 
-        // Eksekusi Pagination
         $films = $dbQuery->paginate(22)->appends(['query' => $queryInput]);
 
-        // Format Data
-        $hasil = collect($films->items())->map(function($film) {
+        $hasil = collect($films->items())->map(function ($film) {
             $personalRating = $film->personal_rating ?? null;
             $globalRating   = $film->rating ?? 0;
             $skorAkhir      = $personalRating ? $personalRating : $globalRating;
@@ -119,65 +155,72 @@ class RekomendasiController extends Controller
                 'judul'       => $film->title,
                 'skor'        => (float) $skorAkhir,
                 'poster'      => $film->poster_path,
-                'is_personal' => !is_null($personalRating)
+                'is_personal' => !is_null($personalRating),
+                'personal_rating' => $personalRating 
             ];
         });
 
-        return view('rekomendasi', compact('hasil', 'films', 'queryInput')); 
+        return view('rekomendasi', [
+            'hasil'           => $hasil,
+            'films'           => $films,
+            'queryInput'      => $queryInput,
+            'recommendations' => [], 
+            'ratedMovies'     => []  
+        ]);
     }
-    // Fungsi untuk menangani AJAX Request simpan rating
-  public function simpanRating(Request $request)
+
+    public function simpanRating(Request $request)
     {
-        // 1. Cek Login
         if (!Auth::check()) {
-            return response()->json(['message' => 'User belum login.'], 401);
+            return response()->json(['success' => false, 'message' => 'User belum login.'], 401);
         }
 
         try {
             $userId = Auth::id();
-            $movieId = $request->movie_id;
-            $ratingVal = $request->rating;
+            
+            $request->validate([
+                'movie_id' => 'required',
+                'rating'   => 'required|integer|min:1|max:5'
+            ]);
 
-            // 2. Validasi Input
-            if (!$movieId || !$ratingVal) {
-                return response()->json(['message' => 'Data tidak lengkap.'], 400);
-            }
-
-            // 3. Cek apakah user sudah pernah rating film ini?
-            $existingRating = DB::table('ratings')
+            // Cek rating lama
+            $existing = DB::table('ratings')
                 ->where('user_id', $userId)
-                ->where('movie_id', $movieId)
+                ->where('movie_id', $request->movie_id)
                 ->first();
 
-            if ($existingRating) {
-                // === KONDISI UPDATE ===
-                // Kita hanya update skor rating saja, tanpa updated_at
+            if ($existing) {
+                // Update
                 DB::table('ratings')
-                    ->where('id', $existingRating->id)
+                    ->where('id', $existing->id)
                     ->update([
-                        'rating' => $ratingVal
+                        'rating' => $request->rating,
+                        // 'updated_at' => now() // Uncomment jika kolom updated_at ada
                     ]);
             } else {
-                // === KONDISI BARU (INSERT) ===
-                // Kita insert tanpa created_at / updated_at
-                DB::table('ratings')->insert([
-                    'user_id'    => $userId,
-                    'movie_id'   => $movieId,
-                    'rating'     => $ratingVal
-                    // Kolom created_at & updated_at SAYA HAPUS karena tidak ada di DB
-                ]);
+                // Insert Baru
+                $dataInsert = [
+                    'user_id'  => $userId,
+                    'movie_id' => $request->movie_id,
+                    'rating'   => $request->rating,
+                ];
+
+                // Cek apakah tabel ratings punya kolom created_at sebelum insert
+                // Cara paling aman adalah menggunakan try-catch atau asumsi default
+                // Disini saya tambahkan created_at, jika error di database, hapus baris ini.
+                $dataInsert['created_at'] = now(); 
+
+                DB::table('ratings')->insert($dataInsert);
             }
 
-            return response()->json(['message' => 'Berhasil disimpan!']);
+            return response()->json([
+                'success' => true, 
+                'message' => 'Berhasil disimpan!'
+            ]);
 
-        } catch (\Illuminate\Database\QueryException $e) {
-            // Error Database Spesifik
-            return response()->json([
-                'message' => 'SQL Error: ' . $e->getMessage()
-            ], 500);
         } catch (\Exception $e) {
-            // Error Umum
             return response()->json([
+                'success' => false,
                 'message' => 'Server Error: ' . $e->getMessage()
             ], 500);
         }

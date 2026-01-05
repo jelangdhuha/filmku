@@ -5,67 +5,96 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MovieRec - Sistem Rekomendasi Film</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
     <style>
         :root {
-            --accent: #01b4e4
+            --accent: #01b4e4;
+            --dark-bg: #032541;
+            --gold: #ffd166;
+            --gray-star: #ccc;
         }
 
         body {
-            font-family: Inter, system-ui, Segoe UI, Roboto, "Helvetica Neue", Arial;
+            font-family: 'Inter', sans-serif;
             background: #ffffff;
             color: #212529;
             overflow-x: hidden;
         }
 
+        /* --- Navbar --- */
         .navbar {
-            background: #ffffff
+            background: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
 
         .navbar .site-title {
             color: var(--accent);
-            font-weight: 700
+            font-weight: 700;
+            font-size: 1.2rem;
         }
 
+        /* --- Hero Section --- */
         .hero {
-            background: none;
-            padding: 40px 0
+            background-color: var(--dark-bg);
+            /* Ganti url di bawah dengan gambar background Anda */
+            background-image: linear-gradient(to right, rgba(3, 37, 65, 0.8), rgba(3, 37, 65, 0.6)), url('https://image.tmdb.org/t/p/original/8Y43POKjjKDGI9SMAENCaMt65ue.jpg');
+            background-size: cover;
+            background-position: center;
+            padding: 60px 0;
+            color: white;
         }
 
-        /* === STYLE BARU UNTUK SCROLL SAMPING === */
+        /* --- Horizontal Scroll Wrapper (Netflix Style) --- */
         .horizontal-scroll-wrapper {
             display: flex;
             overflow-x: auto;
             padding-bottom: 20px;
-            gap: 16px;
-            /* Sembunyikan Scrollbar default tapi tetap bisa scroll */
+            gap: 20px;
             scrollbar-width: thin;
+            /* Firefox */
             scrollbar-color: var(--accent) #f1f1f1;
         }
 
-        /* Agar card ukurannya tetap fix saat di-scroll */
+        /* Custom Scrollbar Webkit */
+        .horizontal-scroll-wrapper::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .horizontal-scroll-wrapper::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .horizontal-scroll-wrapper::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
+        }
+
         .horizontal-scroll-wrapper .movie-card {
             min-width: 180px;
             max-width: 180px;
             flex: 0 0 auto;
         }
 
-        /* === GRID STYLE === */
+        /* --- Grid Style (Search Results) --- */
         .movie-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 18px
+            gap: 20px;
         }
 
+        /* --- Movie Card Base --- */
         .movie-card {
             background: #ffffff;
             border-radius: 8px;
             overflow: hidden;
-            position: relative;
-            box-shadow: 0 2px 8px rgba(2, 6, 23, 0.06);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             transition: transform 0.2s;
+            border: 1px solid #e3e3e3;
         }
 
         .movie-card:hover {
@@ -74,110 +103,153 @@
 
         .poster {
             width: 100%;
-            height: 240px;
+            height: 270px;
+            /* Tinggi poster konsisten */
             object-fit: cover;
-            background: #f1f3f5
+            background: #f1f3f5;
         }
 
         .movie-info {
-            padding: 10px
+            padding: 12px;
         }
 
+        .movie-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            line-height: 1.2;
+            height: 2.4em;
+            /* Batasi 2 baris teks */
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            margin-bottom: 4px;
+        }
+
+        .movie-sub {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-bottom: 8px;
+        }
+
+        /* --- Badges --- */
         .rating-badge {
             position: absolute;
             left: 8px;
             top: 8px;
             color: #ffffff;
             padding: 4px 8px;
-            border-radius: 6px;
+            border-radius: 4px;
             font-weight: 700;
-            font-size: 0.8rem;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            z-index: 10;
+            font-size: 0.75rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            z-index: 2;
         }
 
-        .movie-title {
-            color: #212529;
-            font-weight: 600;
-            font-size: 0.95rem;
-            line-height: 1.2;
-            height: 2.4em;
-            overflow: hidden;
+        /* --- Star Rating System --- */
+        .user-rating-zone {
+            border-top: 1px solid #eee;
+            padding-top: 8px;
         }
 
-        .movie-sub {
-            color: #6c757d;
-            font-size: 0.82rem
-        }
-
-        .btn-primary-custom {
-            background: var(--accent);
-            border: 0;
-            color: #fff
-        }
-
-        /* Bintang Input */
-        .star-rating .star-btn {
-            color: #ccc;
+        .star-rating {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
             cursor: pointer;
-            transition: 0.2s;
         }
 
-        .star-rating .star-btn.fas,
-        .star-rating .star-btn.active {
-            color: #ffd166 !important;
+        .star-btn {
+            font-size: 1.1rem;
+            color: var(--gray-star);
+            transition: color 0.2s, transform 0.1s;
         }
 
-        .star-rating .star-btn.hover {
+        /* Warna saat di-hover atau aktif */
+        .star-btn.active,
+        .star-btn.fas.hover {
+            color: var(--gold) !important;
+        }
+
+        .star-btn:hover {
             transform: scale(1.2);
+        }
+
+        .rating-msg {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #999;
+            margin-top: 4px;
+            min-height: 15px;
+            /* Menjaga layout tidak lompat */
+            font-weight: 600;
+        }
+
+        /* --- Section Styling --- */
+        .ai-recommendation-section {
+            background: #f0f7ff;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #cce5ff;
+        }
+
+        .btn-search {
+            background: linear-gradient(to right, #1dd4a8, #01b4e4);
+            border: none;
+            color: white;
+            font-weight: 700;
         }
     </style>
 </head>
 
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark">
+    <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="{{ url('/') }}">
-                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
-                    class="me-2">
-                    <rect width="24" height="24" rx="4" fill="#01b4e4" />
-                    <path d="M6 8h12v2H6zM6 12h9v2H6z" fill="#041827" />
-                </svg>
+                <div style="background: var(--accent); width:30px; height:30px; border-radius:5px; margin-right:10px;">
+                </div>
                 <span class="site-title">MovieRec</span>
             </a>
-            <div class="d-flex ms-auto align-items-center">
+            <div class="ms-auto">
                 @auth
-                    <span class="me-3">Halo, <strong>{{ Auth::user()->username }}</strong></span>
-                    <form action="{{ route('logout') }}" method="POST">
+                    <span class="me-3 small text-muted">Halo, <strong>{{ Auth::user()->username }}</strong></span>
+                    <form action="{{ route('logout') }}" method="POST" class="d-inline">
                         @csrf
-                        <button type="submit" class="btn btn-outline-danger btn-sm">Logout</button>
+                        <button type="submit" class="btn btn-outline-danger btn-sm"
+                            style="font-size: 0.75rem;">Logout</button>
                     </form>
                 @else
-                    <a class="btn btn-outline-dark btn-sm" href="{{ route('login') }}">Sign In</a>
+                    <a class="btn btn-primary btn-sm" href="{{ route('login') }}">Login</a>
                 @endauth
+
+                {{-- @auth
+                    <a href="{{ route('sync.data') }}" class="btn btn-warning btn-sm"
+                        onclick="return confirm('Proses ini akan melatih ulang AI. Lanjutkan?')">
+                        🔄 Refresh & Retrain AI
+                    </a>
+                @endauth --}}
             </div>
         </div>
     </nav>
 
-    <header class="hero mb-4"
+    <header class="hero mb-5"
         style="background-image: url('{{ asset('walpaper.jpg') }}'); background-size: cover; background-position: center;">
         <div class="container">
-            <div class="row align-items-center" style="min-height: 350px;">
-                <div class="col-md-6">
-                    <h1 class="display-6 mb-2 text-white">Cari Film Favoritmu</h1>
-                    <div class="search-card">
-                        <form action="{{ route('cek.rekomendasi') }}" method="POST" class="row g-2">
-                            @csrf
-                            <div class="col-9">
-                                <input type="text" name="query" class="form-control" placeholder="Judul film..."
-                                    value="{{ $queryInput ?? '' }}">
-                            </div>
-                            <div class="col-3 d-grid">
-                                <button type="submit" class="btn btn-primary-custom">Cari</button>
-                            </div>
-                        </form>
-                    </div>
+            <div class="row align-items-center" style="min-height: 250px;">
+                <div class="col-md-7">
+                    <h1 class="display-5 fw-bold mb-3">Temukan Film Favoritmu</h1>
+                    <p class="lead mb-4" style="font-size: 1rem; opacity: 0.9;">Sistem kami menggunakan AI untuk
+                        memberikan rekomendasi terbaik berdasarkan selera unik kamu.</p>
+
+                    <form action="{{ route('cek.rekomendasi') }}" method="POST" class="d-flex gap-2">
+                        @csrf
+                        <input type="text" name="query" class="form-control form-control-lg"
+                            placeholder="Ketik judul film (misal: Avengers)..." value="{{ $queryInput ?? '' }}"
+                            style="border-radius: 30px;">
+                        <button type="submit" class="btn btn-search btn-lg px-4"
+                            style="border-radius: 30px;">Cari</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -185,243 +257,314 @@
 
     <main class="container mb-5">
 
-        @if (isset($ratedMovies) && count($ratedMovies) > 0)
-            <div class="mb-5">
-                <h4 class="mb-3 border-start border-4 border-warning ps-3">
-                    Film yang Sudah Dirating
-                    <span class="text-muted fs-6 ms-2 fw-normal">(Geser untuk melihat)</span>
-                </h4>
+        {{-- ======================================================= --}}
+        {{-- BAGIAN 1: TOP REKOMENDASI AI                            --}}
+        {{-- ======================================================= --}}
+        @if (isset($recommendations) && count($recommendations) > 0)
+            <div class="mb-5 ai-recommendation-section">
+                <div class="d-flex align-items-center mb-3">
+                    <h4 class="mb-0 fw-bold text-primary">
+                        <i class="fas fa-sparkles me-2"></i>Rekomendasi Untukmu
+                    </h4>
+                    <span class="badge bg-primary ms-3 rounded-pill">AI Picked</span>
+                </div>
 
                 <div class="horizontal-scroll-wrapper">
-                    @foreach ($ratedMovies as $item)
-                        <div class="movie-card">
-                            <div class="position-relative" style="overflow: hidden;">
-                                @php
-                                    $isPersonal = true; // Karena di loop ratedMovies
-                                    $badgeBg = '#ffc107';
-                                    $badgeColor = '#000';
-                                    $starColor = '#000';
-                                    $userScore = round($item['skor']);
-                                @endphp
+                    @foreach ($recommendations as $rec)
+                        @php
+                            // Normalisasi Data (Array vs Object)
+                            $recTitle = is_array($rec) ? $rec['title'] ?? $rec['judul'] : $rec->judul;
+                            $recId = is_array($rec) ? $rec['movie_id'] ?? 0 : $rec->movie_id;
+                            $posterPath = is_array($rec) ? $rec['poster'] ?? null : $rec->poster;
 
-                                <div class="rating-badge"
-                                    style="background: {{ $badgeBg }}; color: {{ $badgeColor }};">
-                                    {{ number_format((float) $item['skor'], 1) }}
-                                    <i class="fas fa-star ms-1" style="color: {{ $starColor }}"></i>
-                                    <div style="font-size: 0.6rem; font-weight: normal; margin-top: 2px;">RATING ANDA
-                                    </div>
+                            // Logika URL Poster
+                            if (empty($posterPath)) {
+                                $finalPoster = 'https://via.placeholder.com/300x450?text=' . urlencode($recTitle);
+                            } elseif (str_starts_with($posterPath, 'http')) {
+                                $finalPoster = $posterPath;
+                            } else {
+                                $finalPoster = 'https://image.tmdb.org/t/p/w500' . $posterPath;
+                            }
+                        @endphp
+
+                        <div class="movie-card" data-movie-id="{{ $recId }}">
+                            <div class="position-relative">
+                                <div class="rating-badge" style="background: #6f42c1;">
+                                    AI Score
                                 </div>
-
-                                <img src="{{ $item['poster'] ?? 'https://via.placeholder.com/300x450?text=No+Poster' }}"
-                                    alt="{{ $item['judul'] }}" class="poster d-block w-100">
+                                <img src="{{ $finalPoster }}" alt="{{ $recTitle }}" class="poster">
                             </div>
 
                             <div class="movie-info">
-                                <div class="movie-title" title="{{ $item['judul'] }}">
-                                    {{ Str::limit($item['judul'], 45) }}
-                                </div>
-                                <div class="movie-sub text-muted">ID: {{ $item['movie_id'] }}</div>
+                                <div class="movie-title" title="{{ $recTitle }}">{{ $recTitle }}</div>
+                                <div class="movie-sub">Rekomendasi</div>
 
-                                <div class="user-rating-zone mt-2">
-                                    <div class="star-rating" data-movie-id="{{ $item['movie_id'] }}"
-                                        style="display: flex; justify-content: center; gap: 4px;">
+                                <div class="user-rating-zone">
+                                    <div class="star-rating">
                                         @for ($i = 1; $i <= 5; $i++)
-                                            <i class="{{ $userScore >= $i ? 'fas active' : 'far' }} fa-star star-btn"
-                                                data-value="{{ $i }}" style="font-size: 1.1rem;"></i>
+                                            <i class="far fa-star star-btn" data-value="{{ $i }}"></i>
                                         @endfor
                                     </div>
-                                    <div class="rating-msg text-center"
-                                        style="font-size: 0.65rem; color: #6c757d; margin-top: 2px;">
-                                        Rating Anda: {{ $userScore }}
-                                    </div>
+                                    <div class="rating-msg">Beri nilai</div>
                                 </div>
                             </div>
                         </div>
                     @endforeach
                 </div>
             </div>
-
-            <hr class="my-5" style="border-top: 2px dashed #eee;">
         @endif
 
-        <div>
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="mb-0 border-start border-4 border-info ps-3">
-                    @if (isset($queryInput) && $queryInput !== '')
-                        Hasil Pencarian "{{ $queryInput }}"
-                    @else
-                        Koleksi Film
-                    @endif
+
+        {{-- ======================================================= --}}
+        {{-- BAGIAN 2: FILM YANG SUDAH ANDA RATING (HISTORY)         --}}
+        {{-- ======================================================= --}}
+        @if (isset($ratedMovies) && count($ratedMovies) > 0)
+            <div class="mb-5">
+                <h4 class="mb-3 fw-bold border-start border-4 border-warning ps-3">
+                    Film yang Sudah Kamu Nilai
                 </h4>
-                <div class="text-muted small">Total: <strong>{{ $films->total() }}</strong></div>
+
+                <div class="horizontal-scroll-wrapper">
+                    @foreach ($ratedMovies as $item)
+                        @php
+                            $userScore = round($item['skor']); // Rating user dari DB
+                            $posterPath = $item['poster'] ?? null;
+                            if (empty($posterPath)) {
+                                $finalPoster = 'https://via.placeholder.com/300x450?text=No+Poster';
+                            } elseif (str_starts_with($posterPath, 'http')) {
+                                $finalPoster = $posterPath;
+                            } else {
+                                $finalPoster = 'https://image.tmdb.org/t/p/w500' . $posterPath;
+                            }
+                        @endphp
+
+                        <div class="movie-card" data-movie-id="{{ $item['movie_id'] }}">
+                            <div class="position-relative">
+                                <div class="rating-badge" style="background: #ffc107; color: #000;">
+                                    {{ $userScore }} <i class="fas fa-star small"></i>
+                                </div>
+                                <img src="{{ $finalPoster }}" alt="{{ $item['judul'] }}" class="poster">
+                            </div>
+
+                            <div class="movie-info">
+                                <div class="movie-title">{{ Str::limit($item['judul'], 40) }}</div>
+                                <div class="movie-sub">Ratingmu: {{ $userScore }}/5</div>
+
+                                <div class="user-rating-zone">
+                                    <div class="star-rating">
+                                        @for ($i = 1; $i <= 5; $i++)
+                                            <i class="{{ $userScore >= $i ? 'fas active' : 'far' }} fa-star star-btn"
+                                                data-value="{{ $i }}"></i>
+                                        @endfor
+                                    </div>
+                                    <div class="rating-msg" style="color: #198754;">Tersimpan</div>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
             </div>
+        @endif
+
+
+        {{-- ======================================================= --}}
+        {{-- BAGIAN 3: HASIL PENCARIAN / SEMUA KOLEKSI               --}}
+        {{-- ======================================================= --}}
+        <div class="mt-4">
+            <h4 class="mb-4 fw-bold border-start border-4 border-info ps-3">
+                @if (isset($queryInput) && $queryInput !== '')
+                    Hasil Pencarian: "{{ $queryInput }}"
+                @else
+                    Koleksi Film Lengkap
+                @endif
+            </h4>
 
             @if (count($hasil) > 0)
                 <div class="movie-grid">
                     @foreach ($hasil as $item)
-                        <div class="movie-card">
-                            <div class="position-relative" style="overflow: hidden;">
-                                @php
-                                    $isPersonal = false; // Karena di loop koleksi biasa
-                                    $badgeBg = 'rgba(1, 180, 228, 0.9)';
-                                    $badgeColor = '#fff';
-                                    $starColor = '#ffd166';
-                                    $userScore = 0;
-                                @endphp
+                        @php
+                            $posterPath = $item['poster'] ?? null;
+                            if (empty($posterPath)) {
+                                $finalPoster = 'https://via.placeholder.com/300x450?text=No+Poster';
+                            } elseif (str_starts_with($posterPath, 'http')) {
+                                $finalPoster = $posterPath;
+                            } else {
+                                $finalPoster = 'https://image.tmdb.org/t/p/w500' . $posterPath;
+                            }
+                        @endphp
 
-                                <div class="rating-badge"
-                                    style="background: {{ $badgeBg }}; color: {{ $badgeColor }};">
-                                    {{ number_format((float) $item['skor'], 1) }}
-                                    <i class="fas fa-star ms-1" style="color: {{ $starColor }}"></i>
+                        <div class="movie-card" data-movie-id="{{ $item['movie_id'] }}">
+                            <div class="position-relative">
+                                <div class="rating-badge" style="background: rgba(0,0,0,0.6);">
+                                    {{-- GANTI 'vote_average' MENJADI 'skor' --}}
+                                    {{ number_format((float) ($item['skor'] ?? 0), 1) }}
                                 </div>
-
-                                <img src="{{ $item['poster'] ?? 'https://via.placeholder.com/300x450?text=No+Poster' }}"
-                                    alt="{{ $item['judul'] }}" class="poster d-block w-100">
+                                <img src="{{ $finalPoster }}" alt="{{ $item['judul'] }}" class="poster">
                             </div>
 
                             <div class="movie-info">
-                                <div class="movie-title" title="{{ $item['judul'] }}">
-                                    {{ Str::limit($item['judul'], 45) }}
-                                </div>
-                                <div class="movie-sub text-muted">ID: {{ $item['movie_id'] }}</div>
+                                <div class="movie-title">{{ $item['judul'] }}</div>
+                                <div class="movie-sub text-truncate">{{ $item['genres'] ?? 'General' }}</div>
 
-                                <div class="user-rating-zone mt-2">
-                                    <div class="star-rating" data-movie-id="{{ $item['movie_id'] }}"
-                                        style="display: flex; justify-content: center; gap: 4px;">
+                                @php
+                                    // Ambil rating user jika ada (hasil search / koleksi)
+                                    $userRating = $item['personal_rating'] ?? 0;
+                                @endphp
+
+                                <div class="user-rating-zone">
+                                    <div class="star-rating" data-initial-rating="{{ $userRating }}">
                                         @for ($i = 1; $i <= 5; $i++)
-                                            <i class="far fa-star star-btn" data-value="{{ $i }}"
-                                                style="font-size: 1.1rem;"></i>
+                                            <i class="{{ $i <= $userRating ? 'fas active' : 'far' }} fa-star star-btn"
+                                                data-value="{{ $i }}"></i>
                                         @endfor
                                     </div>
-                                    <div class="rating-msg text-center"
-                                        style="font-size: 0.65rem; color: #6c757d; margin-top: 2px;">
-                                        Beri rating
+                                    <div class="rating-msg">
+                                        {{ $userRating > 0 ? 'Tersimpan' : 'Beri nilai' }}
                                     </div>
                                 </div>
+
                             </div>
                         </div>
                     @endforeach
                 </div>
 
                 <div class="mt-5 d-flex justify-content-center">
-                    {!! $films->links('pagination::bootstrap-5') !!}
+                    {!! $films->withQueryString()->links('pagination::bootstrap-5') !!}
                 </div>
             @else
-                <div class="alert alert-light text-center">Belum ada film lain yang tersedia.</div>
+                <div class="alert alert-light text-center border">
+                    <i class="fas fa-film fa-3x mb-3 text-muted"></i>
+                    <p>Film tidak ditemukan.</p>
+                </div>
             @endif
         </div>
 
     </main>
 
+    <footer class="text-center py-4 bg-light border-top mt-5">
+        <p class="mb-0 text-muted small">&copy; {{ date('Y') }} MovieRec System</p>
+    </footer>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
     <script>
-        // Cek status login dari Blade ke JS
-        const isUserLoggedIn = {{ Auth::check() ? 'true' : 'false' }};
+        document.addEventListener("DOMContentLoaded", function() {
 
-        document.querySelectorAll('.star-rating .star-btn').forEach(star => {
+            // Cek status login dari Blade
+            const isUserLoggedIn = {{ Auth::check() ? 'true' : 'false' }};
+            const loginUrl = "{{ route('login') }}";
 
-            // 1. Efek Hover (Visual)
-            star.addEventListener('mouseover', function() {
-                let val = this.dataset.value;
-                let parent = this.parentElement;
-                parent.querySelectorAll('.star-btn').forEach(s => {
-                    if (s.dataset.value <= val) {
-                        s.classList.remove('far');
-                        s.classList.add('fas', 'hover');
-                        s.style.color = '#ffd166';
-                    } else if (!s.classList.contains('active')) {
-                        s.classList.remove('fas');
-                        s.classList.add('far');
-                        s.style.color = '#ccc';
-                    }
-                });
-            });
+            // Ambil semua tombol bintang di halaman
+            const stars = document.querySelectorAll('.star-rating .star-btn');
 
-            // 2. Efek Mouse Out
-            star.addEventListener('mouseout', function() {
-                let parent = this.parentElement;
-                parent.querySelectorAll('.star-btn').forEach(s => {
-                    s.classList.remove('hover');
-                    if (s.classList.contains('active')) {
-                        s.classList.remove('far');
-                        s.classList.add('fas');
-                        s.style.color = '#ffd166';
-                    } else {
-                        s.classList.remove('fas');
-                        s.classList.add('far');
-                        s.style.color = '#ccc';
-                    }
-                });
-            });
+            stars.forEach(star => {
 
-            // 3. LOGIKA KLIK (SIMPAN)
-            star.addEventListener('click', function() {
-                // Cek Login dulu
-                if (!isUserLoggedIn) {
-                    alert("Silakan login terlebih dahulu untuk memberi rating!");
-                    window.location.href = "{{ route('login') }}";
-                    return;
-                }
+                // 1. EVENT: HOVER (Mouse Masuk)
+                star.addEventListener('mouseenter', function() {
+                    const value = parseInt(this.dataset.value);
+                    const container = this.parentElement;
+                    const siblings = container.querySelectorAll('.star-btn');
 
-                let val = this.dataset.value;
-                let parent = this.parentElement;
-                let movieId = parent.dataset.movieId;
-                let stars = parent.querySelectorAll('.star-btn');
-                let msgElement = parent.nextElementSibling;
-
-                // Visual Update
-                stars.forEach(s => {
-                    if (s.dataset.value <= val) {
-                        s.classList.add('active', 'fas');
-                        s.classList.remove('far');
-                        s.style.color = '#ffd166';
-                    } else {
-                        s.classList.remove('active', 'fas');
-                        s.classList.add('far');
-                        s.style.color = '#ccc';
-                    }
-                });
-
-                msgElement.innerText = "Menyimpan...";
-                msgElement.style.color = "#6c757d";
-
-                // --- KIRIM DATA ---
-                // Menggunakan URL relative '/simpan-rating' agar aman dari isu localhost vs 127.0.0.1
-                // Pastikan route di web.php url-nya adalah '/simpan-rating'
-                fetch("/simpan-rating", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Accept": "application/json", // <--- PENTING: Mencegah CORB!
-                            "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                        },
-                        body: JSON.stringify({
-                            movie_id: movieId,
-                            rating: val
-                        })
-                    })
-                    .then(response => {
-                        // Jika server mengirim error (misal 500 atau 401), kita ambil JSON-nya
-                        return response.json().then(data => {
-                            if (!response.ok) {
-                                // Lempar error agar ditangkap catch di bawah
-                                throw new Error(data.message || 'Terjadi kesalahan server.');
+                    // Loop semua bintang di container ini
+                    siblings.forEach(s => {
+                        const sValue = parseInt(s.dataset.value);
+                        if (sValue <= value) {
+                            // Warnai kuning (tambahkan kelas .hover)
+                            s.classList.remove('far');
+                            s.classList.add('fas', 'hover');
+                        } else {
+                            // Jika belum diklik (tidak punya .active), biarkan abu-abu
+                            if (!s.classList.contains('active')) {
+                                s.classList.remove('fas', 'hover');
+                                s.classList.add('far');
                             }
-                            return data;
-                        });
-                    })
-                    .then(data => {
-                        // BERHASIL
-                        msgElement.innerText = "Tersimpan!";
-                        msgElement.style.color = "#198754";
-                        console.log("Sukses:", data);
-                    })
-                    .catch(error => {
-                        // GAGAL
-                        console.error('Error Detail:', error);
-                        msgElement.innerText = "Error: " + error.message; // Tampilkan error di layar
-                        msgElement.style.color = "#dc3545";
+                        }
                     });
+                });
+
+                // 2. EVENT: MOUSE LEAVE (Mouse Keluar)
+                star.addEventListener('mouseleave', function() {
+                    const container = this.parentElement;
+                    const siblings = container.querySelectorAll('.star-btn');
+
+                    siblings.forEach(s => {
+                        // Hapus efek hover
+                        s.classList.remove('hover');
+
+                        // Kembalikan ke state asli (berdasarkan class .active)
+                        if (s.classList.contains('active')) {
+                            // Jika sudah dirating: Kuning Solid
+                            s.classList.remove('far');
+                            s.classList.add('fas');
+                        } else {
+                            // Jika belum dirating: Abu-abu Outline
+                            s.classList.remove('fas');
+                            s.classList.add('far');
+                        }
+                    });
+                });
+
+                // 3. EVENT: CLICK (Simpan Data & Update UI Permanen)
+                star.addEventListener('click', function() {
+                    if (!isUserLoggedIn) {
+                        alert("Silakan login untuk memberi rating!");
+                        window.location.href = loginUrl;
+                        return;
+                    }
+
+                    const value = parseInt(this.dataset.value);
+                    const container = this.parentElement;
+                    const grandParent = container.closest('.movie-card'); // Cari ID film
+                    const movieId = grandParent.dataset.movieId;
+                    const siblings = container.querySelectorAll('.star-btn');
+                    const msgBox = container.nextElementSibling; // div.rating-msg
+
+                    // A. UPDATE UI VISUAL (IN-PLACE)
+                    // Set bintang menjadi 'active' (kuning permanen)
+                    siblings.forEach(s => {
+                        const sValue = parseInt(s.dataset.value);
+                        if (sValue <= value) {
+                            s.classList.add('active', 'fas');
+                            s.classList.remove('far');
+                        } else {
+                            s.classList.remove('active', 'fas');
+                            s.classList.add('far');
+                        }
+                    });
+
+                    // Update Teks Status
+                    msgBox.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+                    msgBox.style.color = '#6c757d';
+
+                    // B. KIRIM KE SERVER (AJAX)
+                    fetch("{{ url('/simpan-rating') }}", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                            },
+                            body: JSON.stringify({
+                                movie_id: movieId,
+                                rating: value
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                msgBox.innerText = "Tersimpan";
+                                msgBox.style.color = "#198754"; // Hijau
+                            } else {
+                                msgBox.innerText = "Gagal";
+                                msgBox.style.color = "#dc3545"; // Merah
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            msgBox.innerText = "Error";
+                            msgBox.style.color = "#dc3545";
+                        });
+                });
+
             });
         });
     </script>
