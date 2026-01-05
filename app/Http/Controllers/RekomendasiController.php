@@ -89,7 +89,7 @@ class RekomendasiController extends Controller
             $query->whereNotIn('id', $ratedMovieIds);
         }
 
-        $films = $query->orderBy('title', 'asc')->paginate(18);
+        $films = $query->orderBy('title', 'asc')->paginate(21);
 
         $unratedFormatted = collect($films->items())->map(function ($film) {
             return [

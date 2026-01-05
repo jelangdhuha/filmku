@@ -238,8 +238,9 @@
             <div class="row align-items-center" style="min-height: 250px;">
                 <div class="col-md-7">
                     <h1 class="display-5 fw-bold mb-3">Temukan Film Favoritmu</h1>
-                    <p class="lead mb-4" style="font-size: 1rem; opacity: 0.9;">Sistem kami menggunakan AI untuk
-                        memberikan rekomendasi terbaik berdasarkan selera unik kamu.</p>
+                    <p class="lead mb-4" style="font-size: 1rem; opacity: 0.9;">Rekomendasi Film Dengan Konsep Model-Based Collaborative
+                        Filtering Sesuai Dengan Selera Anda.
+                    </p>
 
                     <form action="{{ route('cek.rekomendasi') }}" method="POST" class="d-flex gap-2">
                         @csrf
@@ -265,7 +266,7 @@
                     <h4 class="mb-0 fw-bold text-primary">
                         <i class="fas fa-sparkles me-2"></i>Rekomendasi Untukmu
                     </h4>
-                    <span class="badge bg-primary ms-3 rounded-pill">AI Picked</span>
+                    {{-- <span class="badge bg-primary ms-3 rounded-pill">AI Picked</span> --}}
                 </div>
 
                 <div class="horizontal-scroll-wrapper">
@@ -288,9 +289,9 @@
 
                         <div class="movie-card" data-movie-id="{{ $recId }}">
                             <div class="position-relative">
-                                <div class="rating-badge" style="background: #6f42c1;">
+                                {{-- <div class="rating-badge" style="background: #6f42c1;">
                                     AI Score
-                                </div>
+                                </div> --}}
                                 <img src="{{ $finalPoster }}" alt="{{ $recTitle }}" class="poster">
                             </div>
 
@@ -304,7 +305,7 @@
                                             <i class="far fa-star star-btn" data-value="{{ $i }}"></i>
                                         @endfor
                                     </div>
-                                    <div class="rating-msg">Beri nilai</div>
+                                    <div class="rating-msg">Beri Rating</div>
                                 </div>
                             </div>
                         </div>
@@ -320,7 +321,7 @@
         @if (isset($ratedMovies) && count($ratedMovies) > 0)
             <div class="mb-5">
                 <h4 class="mb-3 fw-bold border-start border-4 border-warning ps-3">
-                    Film yang Sudah Kamu Nilai
+                    Film yang Sudah Kamu Rating
                 </h4>
 
                 <div class="horizontal-scroll-wrapper">
