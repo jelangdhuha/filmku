@@ -165,7 +165,7 @@
             transition: color 0.2s, transform 0.1s;
         }
 
-        /* Warna saat di-hover atau aktif */
+       
         .star-btn.active,
         .star-btn.fas.hover {
             color: var(--gold) !important;
@@ -181,11 +181,10 @@
             color: #999;
             margin-top: 4px;
             min-height: 15px;
-            /* Menjaga layout tidak lompat */
+            
             font-weight: 600;
         }
 
-        /* --- Section Styling --- */
         .ai-recommendation-section {
             background: #f0f7ff;
             padding: 25px;
@@ -514,13 +513,12 @@
 
                     const value = parseInt(this.dataset.value);
                     const container = this.parentElement;
-                    const grandParent = container.closest('.movie-card'); // Cari ID film
+                    const grandParent = container.closest('.movie-card'); 
                     const movieId = grandParent.dataset.movieId;
                     const siblings = container.querySelectorAll('.star-btn');
-                    const msgBox = container.nextElementSibling; // div.rating-msg
+                    const msgBox = container.nextElementSibling; 
 
-                    // A. UPDATE UI VISUAL (IN-PLACE)
-                    // Set bintang menjadi 'active' (kuning permanen)
+                    
                     siblings.forEach(s => {
                         const sValue = parseInt(s.dataset.value);
                         if (sValue <= value) {
@@ -552,10 +550,10 @@
                         .then(data => {
                             if (data.success) {
                                 msgBox.innerText = "Tersimpan";
-                                msgBox.style.color = "#198754"; // Hijau
+                                msgBox.style.color = "#198754"; 
                             } else {
                                 msgBox.innerText = "Gagal";
-                                msgBox.style.color = "#dc3545"; // Merah
+                                msgBox.style.color = "#dc3545"; 
                             }
                         })
                         .catch(error => {
