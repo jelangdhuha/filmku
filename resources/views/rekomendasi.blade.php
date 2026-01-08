@@ -165,7 +165,7 @@
             transition: color 0.2s, transform 0.1s;
         }
 
-       
+
         .star-btn.active,
         .star-btn.fas.hover {
             color: var(--gold) !important;
@@ -181,7 +181,7 @@
             color: #999;
             margin-top: 4px;
             min-height: 15px;
-            
+
             font-weight: 600;
         }
 
@@ -222,12 +222,12 @@
                     <a class="btn btn-primary btn-sm" href="{{ route('login') }}">Login</a>
                 @endauth
 
-                {{-- @auth
+                @auth
                     <a href="{{ route('sync.data') }}" class="btn btn-warning btn-sm"
                         onclick="return confirm('Proses ini akan melatih ulang AI. Lanjutkan?')">
                         🔄 Refresh & Retrain AI
                     </a>
-                @endauth --}}
+                @endauth
             </div>
         </div>
     </nav>
@@ -238,7 +238,8 @@
             <div class="row align-items-center" style="min-height: 250px;">
                 <div class="col-md-7">
                     <h1 class="display-5 fw-bold mb-3">Temukan Film Favoritmu</h1>
-                    <p class="lead mb-4" style="font-size: 1rem; opacity: 0.9;">Rekomendasi Film Dengan Konsep Model-Based Collaborative
+                    <p class="lead mb-4" style="font-size: 1rem; opacity: 0.9;">Rekomendasi Film Dengan Konsep
+                        Model-Based Collaborative
                         Filtering Sesuai Dengan Selera Anda.
                     </p>
 
@@ -514,12 +515,12 @@
 
                     const value = parseInt(this.dataset.value);
                     const container = this.parentElement;
-                    const grandParent = container.closest('.movie-card'); 
+                    const grandParent = container.closest('.movie-card');
                     const movieId = grandParent.dataset.movieId;
                     const siblings = container.querySelectorAll('.star-btn');
-                    const msgBox = container.nextElementSibling; 
+                    const msgBox = container.nextElementSibling;
 
-                    
+
                     siblings.forEach(s => {
                         const sValue = parseInt(s.dataset.value);
                         if (sValue <= value) {
@@ -551,10 +552,10 @@
                         .then(data => {
                             if (data.success) {
                                 msgBox.innerText = "Tersimpan";
-                                msgBox.style.color = "#198754"; 
+                                msgBox.style.color = "#198754";
                             } else {
                                 msgBox.innerText = "Gagal";
-                                msgBox.style.color = "#dc3545"; 
+                                msgBox.style.color = "#dc3545";
                             }
                         })
                         .catch(error => {

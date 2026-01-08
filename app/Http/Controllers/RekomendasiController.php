@@ -11,103 +11,99 @@ use Illuminate\Support\Facades\Http;
 class RekomendasiController extends Controller
 {
     public function index()
-    {
-        $userId = Auth::id();
+{
+    $userId = Auth::id();
 
-        // Sinkronisasi data (jika Python aktif)
-        try {
-            (new MovieController())->syncData();
-        } catch (\Exception $e) {
-            // Abaikan error agar halaman tetap tampil
-        }
+    // ===============================
+    // A. Riwayat film yang dirating
+    // ===============================
+    $ratedMoviesFormatted = collect([]);
+    $ratedMovieIds = [];
 
-        // ===============================
-        // A. Riwayat film yang dirating
-        // ===============================
-        $ratedMoviesFormatted = collect([]);
-        $ratedMovieIds = [];
+    if ($userId) {
+        $ratedRaw = DB::table('movies')
+            ->join('ratings', 'movies.id', '=', 'ratings.movie_id')
+            ->where('ratings.user_id', $userId)
+            ->select('movies.*', 'ratings.rating as personal_rating')
+            ->orderBy('ratings.created_at', 'desc')
+            ->get();
 
-        if ($userId) {
-            try {
-                $query = DB::table('movies')
-                    ->join('ratings', 'movies.id', '=', 'ratings.movie_id')
-                    ->where('ratings.user_id', $userId)
-                    ->select('movies.*', 'ratings.rating as personal_rating')
-                    ->orderBy('ratings.created_at', 'desc');
+        $ratedMovieIds = $ratedRaw->pluck('id')->toArray();
 
-                $ratedRaw = $query->get();
-                $ratedMovieIds = $ratedRaw->pluck('id')->toArray();
-
-                $ratedMoviesFormatted = $ratedRaw->map(function ($film) {
-                    return [
-                        'movie_id'    => $film->id,
-                        'judul'       => $film->title,
-                        'skor'        => (float) $film->personal_rating,
-                        'poster'      => $film->poster_path,
-                        'is_personal' => true
-                    ];
-                });
-            } catch (\Exception $e) {
-                $ratedMoviesFormatted = collect([]);
-            }
-        }
-
-        // ===============================
-        // B. Rekomendasi AI
-        // ===============================
-        $recommendations = [];
-
-        if ($userId) {
-            try {
-                $response = Http::timeout(2)
-                    ->get("http://127.0.0.1:8001/recommend/{$userId}");
-
-                if ($response->successful()) {
-                    $apiData = $response->json();
-
-                    if (is_array($apiData) && isset($apiData[0]) && is_array($apiData[0])) {
-                        $recommendations = collect($apiData)->map(function ($item) {
-                            return [
-                                'movie_id' => $item['movie_id'] ?? 0,
-                                'title'    => $item['title'] ?? 'Unknown',
-                                'poster'   => $item['poster'] ?? null,
-                            ];
-                        });
-                    }
-                }
-            } catch (\Exception $e) {
-                $recommendations = [];
-            }
-        }
-
-        // ===============================
-        // C. Koleksi film lainnya
-        // ===============================
-        $query = DB::table('movies');
-
-        if (!empty($ratedMovieIds)) {
-            $query->whereNotIn('id', $ratedMovieIds);
-        }
-
-        $films = $query->orderBy('title', 'asc')->paginate(21);
-
-        $unratedFormatted = collect($films->items())->map(function ($film) {
+        $ratedMoviesFormatted = $ratedRaw->map(function ($film) {
             return [
                 'movie_id'    => $film->id,
                 'judul'       => $film->title,
-                'skor'        => (float) ($film->rating ?? 0),
+                'skor'        => (float) $film->personal_rating,
                 'poster'      => $film->poster_path,
-                'is_personal' => false
+                'is_personal' => true
             ];
         });
-
-        return view('rekomendasi', [
-            'ratedMovies'     => $ratedMoviesFormatted,
-            'recommendations' => $recommendations,
-            'hasil'           => $unratedFormatted,
-            'films'           => $films
-        ]);
     }
+
+    // ===============================
+    // B. Rekomendasi AI
+    // ===============================
+    $recommendations = [];
+
+    if ($userId) {
+        try {
+            $response = Http::timeout(2)
+                ->get("http://127.0.0.1:8001/recommend/{$userId}");
+
+            if ($response->successful()) {
+                $apiData = $response->json();
+
+                if (is_array($apiData)) {
+                    $recommendations = collect($apiData)
+                        ->reject(function ($item) use ($ratedMovieIds) {
+                            return in_array($item['movie_id'], $ratedMovieIds);
+                        })
+                        ->map(function ($item) {
+                            return [
+                                'movie_id' => $item['movie_id'],
+                                'title'    => $item['title'] ?? 'Unknown',
+                                'poster'   => $item['poster'] ?? null,
+                            ];
+                        })
+                        ->values()
+                        ->toArray();
+                }
+            }
+        } catch (\Exception $e) {
+            $recommendations = [];
+        }
+    }
+
+    // ===============================
+    // C. Koleksi film lainnya
+    // ===============================
+    $query = DB::table('movies');
+
+    if (!empty($ratedMovieIds)) {
+        $query->whereNotIn('id', $ratedMovieIds);
+    }
+
+    $films = $query->orderBy('title', 'asc')->paginate(21);
+
+    $unratedFormatted = collect($films->items())->map(function ($film) {
+        return [
+            'movie_id'    => $film->id,
+            'judul'       => $film->title,
+            'skor'        => (float) ($film->rating ?? 0),
+            'poster'      => $film->poster_path,
+            'is_personal' => false
+        ];
+    });
+
+    return view('rekomendasi', [
+        'ratedMovies'     => $ratedMoviesFormatted,
+        'recommendations' => $recommendations,
+        'hasil'           => $unratedFormatted,
+        'films'           => $films
+    ]);
+}
+
 
     public function cariRekomendasi(Request $request)
     {
