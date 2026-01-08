@@ -225,7 +225,7 @@
                 @auth
                     <a href="{{ route('sync.data') }}" class="btn btn-warning btn-sm"
                         onclick="return confirm('Proses ini akan melatih ulang AI. Lanjutkan?')">
-                        🔄 Refresh & Retrain AI
+                        🔄 Refresh recommendations
                     </a>
                 @endauth
             </div>
